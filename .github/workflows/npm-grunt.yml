@@ -1,28 +1,39 @@
-name: NodeJS with Grunt
+name: Tests
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: [push, pull_request]
+
+env:
+  FORCE_COLOR: 2
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  run:
+    name: Node ${{ matrix.node }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
       matrix:
-        node-version: [14.x, 16.x, 18.x]
+        node: [10, 12, 14]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
-    - uses: actions/checkout@v3
+      - name: Clone repository
+        uses: actions/checkout@v2
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
 
-    - name: Build
-      run: |
-        npm install
-        grunt
+      - name: Install npm dependencies
+        run: npm i
+
+      - name: Run tests
+        run: npm test
+
+      # We test multiple Windows shells because of prior stdout buffering issues
+      # filed against Grunt. https://github.com/joyent/node/issues/3584
+      - name: Run PowerShell tests
+        run: "npm test # PowerShell" # Pass comment to PS for easier debugging
+        shell: powershell
+        if: startsWith(matrix.os, 'windows')
